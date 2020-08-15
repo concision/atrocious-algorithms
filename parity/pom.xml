@@ -11,4 +11,8 @@
     <description>Computing whether an integer's parity is even or odd</description>
 
     <packaging>pom</packaging>
+
+    <modules>
+        <module>lcm</module>
+    </modules>
 </project>
