@@ -4,22 +4,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>me.concision</groupId>
-    <artifactId>algorithms</artifactId>
+    <groupId>me.concision.algorithms</groupId>
+    <artifactId>parity</artifactId>
     <version>0.1.0</version>
 
-    <description>A collection of absurdly written algorithms</description>
-
-    <developers>
-        <developer>
-            <name>Concision</name>
-            <email>contact@concision.me</email>
-        </developer>
-    </developers>
+    <description>Computing whether an integer's parity is even or odd</description>
 
     <packaging>pom</packaging>
-
-    <modules>
-        <module>parity</module>
-    </modules>
 </project>
