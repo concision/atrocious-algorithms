@@ -122,6 +122,7 @@
                         <configuration>
                             <executable>java</executable>
                             <arguments>
+                                <argument>-ea</argument>
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>me.concision.algorithms.parity.lcm.LcmParitySourceGenerator</argument>
