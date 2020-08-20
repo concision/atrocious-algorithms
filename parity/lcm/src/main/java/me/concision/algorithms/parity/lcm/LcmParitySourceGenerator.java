@@ -50,6 +50,11 @@ public class LcmParitySourceGenerator {
     public static void main(String[] args) {
         log.info("Target Parity.java generated source file: {}", PARITY_JAVA.getAbsolutePath());
 
+        if (PARITY_JAVA.exists()) {
+            log.info("Source file already exists");
+            return;
+        }
+
         // create parent directories of Parity.java
         PARITY_JAVA.getParentFile().mkdirs();
 
