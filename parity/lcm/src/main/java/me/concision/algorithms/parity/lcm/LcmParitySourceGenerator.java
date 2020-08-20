@@ -93,6 +93,8 @@ public class LcmParitySourceGenerator {
         BigInteger[] products = products(factorSets);
         log.info("Computed products");
 
+        log.info("");
+
         log.info("Writing source file...");
         write(products);
         log.info("Source file written");
@@ -216,80 +218,92 @@ public class LcmParitySourceGenerator {
         };
     }
 
+    /**
+     * Computes products for each integer set. Each first-level array element in {@param factorSets} will be multiplied
+     * together into a {@link BigInteger}. Each product is sequentially computed in parallel. Factors are multiplied
+     * together in an order that is more efficient than naive sequential multiplication. Since multiplication
+     * time-complexity is based off of the largest factor involved, minimizing the largest factor (i.e. roughly equal
+     * factors) at each step reduces the overall time-complexity of the final product.
+     *
+     * @param factorSets array of integer factors
+     * @return {@link BigInteger} products
+     */
     private static BigInteger[] products(int[][] factorSets) {
+        // computed products
         BigInteger[] products = new BigInteger[factorSets.length];
 
+        // compute the products
         for (int f = 0; f < factorSets.length; f++) {
             log.info("Multiplying product {} of {}", f + 1, factorSets.length);
+            // generate the raw bytes
+            StopWatch watch = StopWatch.create();
 
-            byte[] productBytes;
-            {
-                StopWatch watch = StopWatch.create();
+            log.info("Initializing factors...");
+            watch.start();
+            // sort numbers before boxing, for performance
+            Arrays.sort(factorSets[f]);
+            // box to BigInteger objects
+            BigInteger[] factors = Arrays.stream(factorSets[f]).parallel().mapToObj(BigInteger::valueOf).toArray(BigInteger[]::new);
+            // release factors set to be garbage collected
+            factorSets[f] = null;
+            log.info("Factors sorted and converted to big integers; {} elapsed", watch.formatTime());
 
-                // sort numbers while they are still integers for performance
-                log.info("Initializing factors...");
-                watch.start();
-                Arrays.sort(factorSets[f]);
-                BigInteger[] factors = Arrays.stream(factorSets[f]).parallel().mapToObj(BigInteger::valueOf).toArray(BigInteger[]::new);
-                // release reference of factors set for memory
-                factorSets[f] = null;
-                log.info("Factors sorted and converted to big integers; {} elapsed", watch.formatTime());
+            // iteratively multiply factors in parallel
+            StopWatch stepWatch = StopWatch.create();
+            for (int length = factors.length; length != 1; ) {
+                // reset stop watch for the current iteration
+                stepWatch.reset();
+                stepWatch.start();
 
-                // iterative multiplication of factors
-                StopWatch stepWatch = StopWatch.create();
-                for (int length = factors.length; length != 1; ) {
-                    stepWatch.reset();
-                    stepWatch.start();
-
-                    // sort factors and release memory
-                    {
-                        BigInteger[] finalFactors = factors;
-                        factors = IntStream.range(0, length)
-                                .parallel()
-                                .mapToObj(i -> finalFactors[i])
-                                .sorted()
-                                .toArray(BigInteger[]::new);
-                    }
-
-                    // multiply smallest numbers with largest numbers
-                    {
-                        // thanks for closures, Java
-                        int finalLength = length;
-                        BigInteger[] finalFactors = factors;
-                        // parallelized multiplication
-                        IntStream.range(0, length / 2)
-                                .parallel()
-                                .unordered()
-                                .forEach(i -> {
-                                    int l = finalLength - 1 /* one less because 0 indexed */ - i /* go backwards */ - (finalLength % 2) /* skip last one */;
-                                    finalFactors[i] = finalFactors[i].multiply(finalFactors[l]);
-                                    finalFactors[l] = null;
-                                });
-                    }
-                    // move the odd prime out that did NOT get multiplied with anything
-                    if (length % 2 != 0) {
-                        factors[length / 2] = factors[length - 1];
-                        factors[length - 1] = null;
-                    }
-
-                    stepWatch.stop();
-                    log.info("Multiplied {} factors; {} elapsed", length, stepWatch.formatTime());
-
-                    // shrink number of factors
-                    length = length / 2 + length % 2;
+                // multiply smallest numbers with largest numbers
+                {
+                    // thanks for closures, Java
+                    int finalLength = length;
+                    BigInteger[] finalFactors = factors;
+                    // parallelized multiplication
+                    IntStream.range(0, length / 2)
+                            .parallel()
+                            .unordered()
+                            .forEach(i -> {
+                                int l = finalLength - 1 /* one less because 0 indexed */ - i /* go backwards */ - (finalLength % 2) /* skip last one */;
+                                finalFactors[i] = finalFactors[i].multiply(finalFactors[l]);
+                                finalFactors[l] = null;
+                            });
                 }
 
-                // pick the last one off
-                BigInteger product = factors[0];
-                productBytes = product.toByteArray();
+                // sort factors and release old array elements to be garbage collected
+                {
+                    BigInteger[] finalFactors = factors;
+                    factors = IntStream.range(0, length)
+                            .parallel()
+                            .mapToObj(i -> finalFactors[i])
+                            .sorted()
+                            .toArray(BigInteger[]::new);
+                }
 
-                watch.stop();
-                log.info("Product computed; digits: {}; {} bytes; {} elapsed",
-                        String.format("%,d", round(ceil(product.bitLength() * Math.log(2) / Math.log(10)))),
-                        productBytes.length,
-                        watch.formatTime()
-                );
+                // shift the prime that was not used in the current multiplication step
+                if (length % 2 != 0) {
+                    factors[length / 2] = factors[length - 1];
+                    factors[length - 1] = null;
+                }
+
+                stepWatch.stop();
+                log.info("Multiplied {} factors; {} elapsed", length, stepWatch.formatTime());
+
+                // shrink number of factors
+                length = length / 2 + length % 2;
             }
+
+            // the only element in factors remaining is the final computed product
+            BigInteger product = factors[0];
+            // return the product
+            products[f] = product;
+
+            watch.stop();
+            log.info("Product computed; digits: {}; {} elapsed",
+                    String.format("%,d", round(ceil(product.bitLength() * Math.log(2) / Math.log(10)))),
+                    watch.formatTime()
+            );
         }
 
         return products;
