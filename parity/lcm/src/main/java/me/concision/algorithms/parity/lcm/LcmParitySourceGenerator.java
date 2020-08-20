@@ -4,9 +4,14 @@ import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.StopWatch;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -82,6 +87,10 @@ public class LcmParitySourceGenerator {
         log.info("Computing products...");
         BigInteger[] products = products(factorSets);
         log.info("Computed products");
+
+        log.info("Writing source file...");
+        write(products);
+        log.info("Source file written");
     }
 
     /**
@@ -279,5 +288,139 @@ public class LcmParitySourceGenerator {
         }
 
         return products;
+    }
+
+    /**
+     * Generates and writes {@link #PARITY_JAVA} with the BigInteger products encoded inside. This is technically less
+     * space efficient, as all strings in classes are UTF-8 encoded by the Java compiler. In order to (relatively)
+     * efficiently store them, only the characters in the range 0 to 127 (inclusive) are used, as they only take a
+     * single byte, whereas higher numbers use more than 1 bytes. This storage ratio is 1/8th less efficient, as a bit
+     * must be set to 0 each time. Fortunately, storing the compiled .class in a .jar will yield compression back to
+     * the approximately the original product bytes.
+     *
+     * @param products products to serialize
+     */
+    private static void write(BigInteger[] products) {
+        // byte lookup table for Java-legal UTF-8 escape sequences
+        byte[][] escapedChar = new byte[128][];
+        {
+            String[] lookup = IntStream.rangeClosed(0, 127).mapToObj(i -> String.valueOf((char) i)).toArray(String[]::new);
+            lookup['\0'] = "\\0";
+            lookup['\b'] = "\\b";
+            lookup['\n'] = "\\n";
+            lookup['\r'] = "\\r";
+            lookup['\t'] = "\\t";
+            lookup['\f'] = "\\f";
+            lookup['\"'] = "\\\"";
+            lookup['\\'] = "\\\\";
+            // write lookups as UTF-8 byte sequences
+            for (int i = 0; i < lookup.length; i++) {
+                escapedChar[i] = lookup[i].getBytes(StandardCharsets.UTF_8);
+            }
+        }
+
+        // UTF-8 bytecode encoded character lengths
+        int[] utf8lengths = new int[128];
+        Arrays.fill(utf8lengths, 1);
+        utf8lengths['\0'] = 2; // UTF-8 encoding for '\0' uses bytes C0 80
+
+        // generate Java file with computed products
+        try (PrintStream output = new PrintStream(new BufferedOutputStream(new FileOutputStream(PARITY_JAVA), 1024 * 1024 /* 1MB */), false, StandardCharsets.ISO_8859_1.name())) {
+            // write boilerplate Java packaging
+            output.printf("package %s;%n", LcmParitySourceGenerator.class.getPackage().getName());
+            output.println();
+            // imports
+            output.println("import java.math.BigInteger;");
+            output.println();
+
+            // start of class
+            output.println("public class Parity {");
+
+            // start of static initializer
+            output.println("    static {");
+            // start of primePowers array
+            output.println("        String[][] primePowers = {");
+            // write computed products
+            for (int p = 0; p < products.length; p++) {
+                log.info("Writing product {} of {}", p + 1, products.length);
+
+                // convert product to a byte buffer
+                ByteBuffer input = ByteBuffer.wrap(products[p].toByteArray());
+                // release product to be garbage collected
+                products[p] = null;
+
+                output.println("            {");
+
+                // temporarily cached unused bits while encoding the product
+                int bits = 0;
+                // number of bits cached in the bits variable
+                int cachedBits = 0;
+                // encode into several UTF-8 strings; 7 bits are encoded at a time
+                while (input.hasRemaining() || 0 < cachedBits) {
+                    // start of string
+                    output.print("                \"");
+
+                    // write up to a maximum of 0xFFFE characters
+                    int length = 0;
+                    while (input.hasRemaining() || 0 < cachedBits) {
+                        // if there are no cached bits, obtain more if there are any
+                        if (cachedBits < 7 && input.hasRemaining()) {
+                            bits = (bits << 8) | (input.get() & 0xFF);
+                            cachedBits += 8;
+                        }
+
+                        // read the next 7 bits
+                        byte b;
+                        if (7 <= cachedBits) {
+                            // read highest 7 bits
+                            b = (byte) ((bits >> (cachedBits - 7)) & 0x7F);
+                        } else {
+                            // read last bits, but make them start at the 7 bit mark
+                            b = (byte) ((bits << (7 - cachedBits)) & 0x7F); // & 0x7F should be redundant...
+
+                            assert !input.hasRemaining() : "expected end of byte buffer while reading last bits";
+                        }
+
+                        // break if this string length will exceed 0xFFFE bytes
+                        if (0xFFFE < length + utf8lengths[b]) {
+                            break;
+                        }
+
+                        // write character as UTF-8 escape sequences
+                        output.write(escapedChar[b]);
+                        // add the bytecode UTF-8 encoding length
+                        length += utf8lengths[b];
+
+                        // remove bits
+                        bits &= ~(0x7F << (cachedBits - 7));
+                        cachedBits -= Math.min(cachedBits, 7);
+                    }
+
+                    // end of string
+                    output.print("\"");
+                    // add another comma if there is another String next
+                    if (input.hasRemaining() || 0 < cachedBits) {
+                        output.print(",");
+                    }
+                    output.println();
+                }
+
+                output.print("            }");
+                // add another comma if there is another product
+                if (p != products.length - 1) {
+                    output.print(',');
+                }
+                output.println();
+            }
+            // end of primePowers array
+            output.println("        };");
+            // end of static initializer
+            output.println("    };");
+
+            // end of class
+            output.println("}");
+        } catch (IOException exception) {
+            throw new RuntimeException("failed to write Parity class", exception);
+        }
     }
 }
