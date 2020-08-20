@@ -5,11 +5,14 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.StopWatch;
 
 import java.io.File;
+import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import static java.lang.Math.ceil;
 import static java.lang.Math.floor;
@@ -32,8 +35,6 @@ public class LcmParitySourceGenerator {
      * LCM lookup table upper limit
      */
     private static final Integer LIMIT = Integer.MAX_VALUE;
-
-    private static final StopWatch WATCH = StopWatch.create();
 
     /**
      * Initiate source code generation
@@ -73,10 +74,14 @@ public class LcmParitySourceGenerator {
     private static void generateSourceFile() {
         // computes the factors for the magic lookup numbers used for parity checking
         log.info("Computing LCM prime power factors...");
-        int[][] factors = computeFactorSets();
+        int[][] factorSets = computeFactorSets();
         log.info("Computed LCM prime power factors");
 
         log.info("");
+
+        log.info("Computing products...");
+        BigInteger[] products = products(factorSets);
+        log.info("Computed products");
     }
 
     /**
@@ -89,6 +94,8 @@ public class LcmParitySourceGenerator {
      * @return an array of 2 prime-power factor sets
      */
     private static int[][] computeFactorSets() {
+        StopWatch watch = StopWatch.create();
+
         // The last index that a prime was inserted into; after the prime-power computation, this is the effective
         // length of the following prime-powers array.
         int primeIndex = 0;
@@ -98,8 +105,8 @@ public class LcmParitySourceGenerator {
         // compute the prime-powers
         {
             log.info("Computing primes and their respective exponents...");
-            WATCH.reset();
-            WATCH.start();
+            watch.reset();
+            watch.start();
 
             // An upper bound of the prime-counting function, pi(x), is used: pi(x) = x/(log x) * (1 + 3/(2log x))
             // It cannot be precisely known ahead-of-time how many prime powers that will be discovered during sieving,
@@ -147,8 +154,8 @@ public class LcmParitySourceGenerator {
                 }
             }
 
-            WATCH.stop();
-            log.info("Computed {} prime powers in {}", String.format("%,d", primeIndex), WATCH.formatTime());
+            watch.stop();
+            log.info("Computed {} prime powers; {} elapsed", String.format("%,d", primeIndex), watch.formatTime());
         }
 
         // Unfortunately, the product of all the prime-powers can exceed Integer.MAX_VALUE. The prime-powers must be
@@ -158,8 +165,8 @@ public class LcmParitySourceGenerator {
         // split the prime-powers into 2 sets of equal magnitude as a product
         {
             log.info("Splitting prime power factors equally into 2 numbers...");
-            WATCH.reset();
-            WATCH.start();
+            watch.reset();
+            watch.start();
 
             // create a cumulative magnitude array
             double[] cumulativeMagnitude = new double[primeIndex];
@@ -173,9 +180,9 @@ public class LcmParitySourceGenerator {
             splitIndex = Arrays.binarySearch(cumulativeMagnitude, cumulativeMagnitude[cumulativeMagnitude.length - 1] / 2);
             if (splitIndex < 0) splitIndex = ~splitIndex - 1;
 
-            WATCH.stop();
+            watch.stop();
             log.info("Total base 2 magnitude: {}", String.format("%,d", round(ceil(cumulativeMagnitude[cumulativeMagnitude.length - 1] / log(2)))));
-            log.info("Split into magnitudes {} (prime-power count: {}) in {}",
+            log.info("Split into magnitudes {} (prime-power count: {}); {} elapsed",
                     new String[]{
                             String.format("%,d", round(ceil(cumulativeMagnitude[splitIndex] / log(2)))),
                             String.format("%,d", round(ceil((cumulativeMagnitude[cumulativeMagnitude.length - 1] - cumulativeMagnitude[splitIndex]) / log(2))))
@@ -184,7 +191,7 @@ public class LcmParitySourceGenerator {
                             String.format("%,d", splitIndex),
                             String.format("%,d", primeIndex - splitIndex)
                     },
-                    WATCH.formatTime()
+                    watch.formatTime()
             );
         }
 
@@ -193,5 +200,84 @@ public class LcmParitySourceGenerator {
                 Arrays.copyOfRange(primePowers, 0, splitIndex),
                 Arrays.copyOfRange(primePowers, splitIndex, primeIndex)
         };
+    }
+
+    private static BigInteger[] products(int[][] factorSets) {
+        BigInteger[] products = new BigInteger[factorSets.length];
+
+        for (int f = 0; f < factorSets.length; f++) {
+            log.info("Multiplying product {} of {}", f + 1, factorSets.length);
+
+            byte[] productBytes;
+            {
+                StopWatch watch = StopWatch.create();
+
+                // sort numbers while they are still integers for performance
+                log.info("Initializing factors...");
+                watch.start();
+                Arrays.sort(factorSets[f]);
+                BigInteger[] factors = Arrays.stream(factorSets[f]).parallel().mapToObj(BigInteger::valueOf).toArray(BigInteger[]::new);
+                // release reference of factors set for memory
+                factorSets[f] = null;
+                log.info("Factors sorted and converted to big integers; {} elapsed", watch.formatTime());
+
+                // iterative multiplication of factors
+                StopWatch stepWatch = StopWatch.create();
+                for (int length = factors.length; length != 1; ) {
+                    stepWatch.reset();
+                    stepWatch.start();
+
+                    // sort factors and release memory
+                    {
+                        BigInteger[] finalFactors = factors;
+                        factors = IntStream.range(0, length)
+                                .parallel()
+                                .mapToObj(i -> finalFactors[i])
+                                .sorted()
+                                .toArray(BigInteger[]::new);
+                    }
+
+                    // multiply smallest numbers with largest numbers
+                    {
+                        // thanks for closures, Java
+                        int finalLength = length;
+                        BigInteger[] finalFactors = factors;
+                        // parallelized multiplication
+                        IntStream.range(0, length / 2)
+                                .parallel()
+                                .unordered()
+                                .forEach(i -> {
+                                    int l = finalLength - 1 /* one less because 0 indexed */ - i /* go backwards */ - (finalLength % 2) /* skip last one */;
+                                    finalFactors[i] = finalFactors[i].multiply(finalFactors[l]);
+                                    finalFactors[l] = null;
+                                });
+                    }
+                    // move the odd prime out that did NOT get multiplied with anything
+                    if (length % 2 != 0) {
+                        factors[length / 2] = factors[length - 1];
+                        factors[length - 1] = null;
+                    }
+
+                    stepWatch.stop();
+                    log.info("Multiplied {} factors; {} elapsed", length, stepWatch.formatTime());
+
+                    // shrink number of factors
+                    length = length / 2 + length % 2;
+                }
+
+                // pick the last one off
+                BigInteger product = factors[0];
+                productBytes = product.toByteArray();
+
+                watch.stop();
+                log.info("Product computed; digits: {}; {} bytes; {} elapsed",
+                        String.format("%,d", round(ceil(product.bitLength() * Math.log(2) / Math.log(10)))),
+                        productBytes.length,
+                        watch.formatTime()
+                );
+            }
+        }
+
+        return products;
     }
 }
