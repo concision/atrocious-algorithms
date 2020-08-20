@@ -67,7 +67,12 @@ public class LcmParitySourceGenerator {
             try {
                 log.info("Starting source generation...");
                 log.info("");
+                StopWatch watch = new StopWatch();
+                watch.start();
                 generateSourceFile();
+                watch.stop();
+                log.info("");
+                log.info("Source generation completed; {} elapsed", watch.formatTime());
             } catch (Throwable throwable) {
                 log.error("An unexpected exception occurred during execution", throwable);
                 System.exit(-1);
@@ -361,8 +366,11 @@ public class LcmParitySourceGenerator {
             // start of primePowers array
             output.println("        String[][] primePowers = {");
             // write computed products
+            StopWatch watch = StopWatch.create();
             for (int p = 0; p < products.length; p++) {
-                log.info("Writing product {} of {}", p + 1, products.length);
+                log.info("Encoding product {} of {}", p + 1, products.length);
+                watch.reset();
+                watch.start();
 
                 // convert product to a byte buffer
                 ByteBuffer input = ByteBuffer.wrap(products[p].toByteArray());
@@ -431,6 +439,9 @@ public class LcmParitySourceGenerator {
                     output.print(',');
                 }
                 output.println();
+
+                watch.stop();
+                log.info("Encoded product; {} elapsed", watch.formatTime());
             }
             // end of primePowers array
             output.println("        };");
