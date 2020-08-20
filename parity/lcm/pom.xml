@@ -111,6 +111,9 @@
                             <target>8</target>
                             <fork>true</fork>
                             <maxmem>5120m</maxmem>
+                            <includes>
+                                <include>**/me/concision/algorithms/parity/lcm/Parity.java</include>
+                            </includes>
                         </configuration>
                     </execution>
                 </executions>
