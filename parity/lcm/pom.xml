@@ -155,21 +155,23 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <!-- prevent creation of '*-shaded.jar' -->
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <!-- only include sources from the project -->
+                            <artifactSet>
+                                <includes>
+                                    <include>${project.groupId}:${project.artifactId}</include>
+                                </includes>
+                            </artifactSet>
+                            <!-- explicitly export generated Parity class and META-INF -->
                             <filters>
-                                <!-- Explicitly export generated Parity class and META-INF -->
                                 <filter>
                                     <artifact>${project.groupId}:${project.artifactId}</artifact>
                                     <includes>
                                         <include>me/concision/algorithms/parity/lcm/Parity.class</include>
                                         <include>META-INF/**</include>
                                     </includes>
-                                </filter>
-                                <!-- Exclude all other classes/resources -->
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>**/*</exclude>
-                                    </excludes>
                                 </filter>
                             </filters>
                         </configuration>
