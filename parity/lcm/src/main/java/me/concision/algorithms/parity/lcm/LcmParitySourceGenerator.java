@@ -55,7 +55,8 @@ public class LcmParitySourceGenerator {
             return;
         }
 
-        // create parent directories of Parity.java
+        // create parent directories of Parity.java;
+        // noinspection ResultOfMethodCallIgnored
         PARITY_JAVA.getParentFile().mkdirs();
 
         // determine processor parallelism; attempt to leave 1 processor available for system stability
