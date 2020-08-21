@@ -1,6 +1,5 @@
 package me.concision.algorithms.parity.lcm;
 
-import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.StopWatch;
 
@@ -15,8 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 import static java.lang.Math.ceil;
@@ -46,7 +43,6 @@ public class LcmParitySourceGenerator {
      *
      * @param args an empty {@link String[]}
      */
-    @SneakyThrows({InterruptedException.class})
     public static void main(String[] args) {
         log.info("Target Parity.java generated source file: {}", PARITY_JAVA.getAbsolutePath());
 
@@ -65,29 +61,19 @@ public class LcmParitySourceGenerator {
             System.exit(-1);
         }, "parent-watchdog").start();
 
-        // determine processor parallelism; attempt to leave 1 processor available for system stability
-        int processors = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
-        // submit task to a ForkJoinPool to cap a parallel Stream's computational usage
-        ForkJoinPool pool = new ForkJoinPool(processors);
-        pool.submit(() -> {
-            try {
-                log.info("Starting source generation...");
-                log.info("");
-                StopWatch watch = new StopWatch();
-                watch.start();
-                generateSourceFile();
-                watch.stop();
-                log.info("");
-                log.info("Source generation completed; {} elapsed", watch.formatTime());
-            } catch (Throwable throwable) {
-                log.error("An unexpected exception occurred during execution", throwable);
-                System.exit(-1);
-            }
-        });
-
-        // shutdown pool and wait for computation to complete
-        pool.shutdown();
-        pool.awaitTermination(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+        log.info("Starting source generation...");
+        log.info("");
+        StopWatch watch = new StopWatch();
+        watch.start();
+        try {
+            generateSourceFile();
+        } catch (Throwable throwable) {
+            log.error("An unexpected exception occurred during execution", throwable);
+            System.exit(-1);
+        }
+        watch.stop();
+        log.info("");
+        log.info("Source generation completed; {} elapsed", watch.formatTime());
     }
 
     /**
@@ -267,30 +253,21 @@ public class LcmParitySourceGenerator {
                 stepWatch.reset();
                 stepWatch.start();
 
-
                 // sort factors and release old array elements to be garbage collected
-                {
-                    BigInteger[] finalFactors = factors;
-                    factors = IntStream.range(0, length)
-                            .parallel()
-                            .mapToObj(i -> finalFactors[i])
-                            .sorted()
-                            .toArray(BigInteger[]::new);
-                }
+                Arrays.parallelSort(factors, 0, length);
 
                 // multiply smallest numbers with largest numbers
                 {
                     // thanks for closures, Java
                     int finalLength = length;
-                    BigInteger[] finalFactors = factors;
                     // parallelized multiplication
                     IntStream.range(0, length / 2)
                             .parallel()
                             .unordered()
                             .forEach(i -> {
                                 int l = finalLength - 1 /* one less because 0 indexed */ - i /* go backwards */ - (finalLength % 2) /* skip last one */;
-                                finalFactors[i] = finalFactors[i].multiply(finalFactors[l]);
-                                finalFactors[l] = null;
+                                factors[i] = factors[i].multiply(factors[l]);
+                                factors[l] = null;
                             });
                 }
                 log.info("Completed");
