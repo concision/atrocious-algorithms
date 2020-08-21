@@ -55,9 +55,15 @@ public class LcmParitySourceGenerator {
             return;
         }
 
-        // create parent directories of Parity.java;
-        // noinspection ResultOfMethodCallIgnored
-        PARITY_JAVA.getParentFile().mkdirs();
+        // exit process if parent process (e.g. maven) is closed
+        new Thread(() -> {
+            try {
+                //noinspection StatementWithEmptyBody
+                while (0 <= System.in.read()) ;
+            } catch (IOException ignored) {
+            }
+            System.exit(-1);
+        }, "parent-watchdog").start();
 
         // determine processor parallelism; attempt to leave 1 processor available for system stability
         int processors = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
@@ -261,6 +267,17 @@ public class LcmParitySourceGenerator {
                 stepWatch.reset();
                 stepWatch.start();
 
+
+                // sort factors and release old array elements to be garbage collected
+                {
+                    BigInteger[] finalFactors = factors;
+                    factors = IntStream.range(0, length)
+                            .parallel()
+                            .mapToObj(i -> finalFactors[i])
+                            .sorted()
+                            .toArray(BigInteger[]::new);
+                }
+
                 // multiply smallest numbers with largest numbers
                 {
                     // thanks for closures, Java
@@ -276,16 +293,8 @@ public class LcmParitySourceGenerator {
                                 finalFactors[l] = null;
                             });
                 }
+                log.info("Completed");
 
-                // sort factors and release old array elements to be garbage collected
-                {
-                    BigInteger[] finalFactors = factors;
-                    factors = IntStream.range(0, length)
-                            .parallel()
-                            .mapToObj(i -> finalFactors[i])
-                            .sorted()
-                            .toArray(BigInteger[]::new);
-                }
 
                 // shift the prime that was not used in the current multiplication step
                 if (length % 2 != 0) {
@@ -350,6 +359,8 @@ public class LcmParitySourceGenerator {
         utf8lengths['\0'] = 2; // UTF-8 encoding for '\0' uses bytes C0 80
 
         // generate Java file with computed products
+        //noinspection ResultOfMethodCallIgnored
+        PARITY_JAVA.getParentFile().mkdirs();
         try (PrintStream output = new PrintStream(new BufferedOutputStream(new FileOutputStream(PARITY_JAVA), 1024 * 1024 /* 1MB */), false, StandardCharsets.ISO_8859_1.name())) {
             // write boilerplate Java packaging
             output.printf("package %s;%n", LcmParitySourceGenerator.class.getPackage().getName());
