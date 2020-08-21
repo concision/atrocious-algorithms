@@ -60,14 +60,17 @@ public class LcmParitySourceGenerator {
         }
 
         // exit process if parent process (e.g. maven) is closed
-        new Thread(() -> {
+        Thread watchdog = new Thread(() -> {
             try {
                 //noinspection StatementWithEmptyBody
                 while (0 <= System.in.read()) ;
             } catch (IOException ignored) {
             }
             System.exit(-1);
-        }, "parent-watchdog").start();
+        }, "parent-watchdog");
+        // allow system to exit
+        watchdog.setDaemon(true);
+        watchdog.start();
 
         log.info("Starting source generation...");
         log.info("");
