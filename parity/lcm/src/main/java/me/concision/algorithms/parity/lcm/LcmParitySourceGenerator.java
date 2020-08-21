@@ -106,6 +106,8 @@ public class LcmParitySourceGenerator {
                 log.info("Computed products");
 
                 // save products to cache file
+                //noinspection ResultOfMethodCallIgnored
+                cacheFile.getParentFile().mkdirs();
                 try (DataOutputStream stream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(cacheFile), 16 * 1024 * 1024 /* 16MB */))) {
                     for (BigInteger product : products) {
                         byte[] bytes = product.toByteArray();
