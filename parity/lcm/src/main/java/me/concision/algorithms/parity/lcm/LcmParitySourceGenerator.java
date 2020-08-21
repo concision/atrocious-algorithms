@@ -3,8 +3,13 @@ package me.concision.algorithms.parity.lcm;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.StopWatch;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -12,8 +17,10 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.List;
 import java.util.stream.IntStream;
 
 import static java.lang.Math.ceil;
@@ -29,6 +36,7 @@ public class LcmParitySourceGenerator {
      * Generated Parity.java location
      */
     private static final File PARITY_JAVA = Paths.get(
+            System.getProperty("parity.target", String.join(File.separator, ".", "target", "generated-sources", "java")),
             LcmParitySourceGenerator.class.getPackage().getName().replace('.', File.separatorChar),
             "Parity.java"
     ).toFile();
@@ -80,16 +88,55 @@ public class LcmParitySourceGenerator {
      * Generate the {@link #PARITY_JAVA} source file
      */
     private static void generateSourceFile() {
-        // computes the factors for the magic lookup numbers used for parity checking
-        log.info("Computing LCM prime power factors...");
-        int[][] factorSets = computeFactorSets();
-        log.info("Computed LCM prime power factors");
+        BigInteger[] products;
 
-        log.info("");
+        {
+            File cacheFile = Paths.get(System.getProperty("parity.cache", ".cache"), String.valueOf(LIMIT)).toFile();
+            // if no cache file is found, compute products
+            if (!cacheFile.exists()) {
+                // computes the factors for the magic lookup numbers used for parity checking
+                log.info("Computing LCM prime power factors...");
+                int[][] factorSets = computeFactorSets();
+                log.info("Computed LCM prime power factors");
 
-        log.info("Computing products...");
-        BigInteger[] products = products(factorSets);
-        log.info("Computed products");
+                log.info("");
+
+                log.info("Computing products...");
+                products = products(factorSets);
+                log.info("Computed products");
+
+                // save products to cache file
+                try (DataOutputStream stream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(cacheFile), 16 * 1024 * 1024 /* 16MB */))) {
+                    for (BigInteger product : products) {
+                        byte[] bytes = product.toByteArray();
+                        stream.writeInt(bytes.length);
+                        stream.write(bytes);
+                    }
+                } catch (IOException exception) {
+                    log.error("Failed to write cache file: {}", cacheFile.getAbsolutePath(), exception);
+                }
+                log.info("Cached products: {}", cacheFile.getAbsolutePath());
+            } else { // use cached computed products
+                log.info("Reading from cache file: {}", cacheFile.getAbsolutePath());
+                List<BigInteger> numbers = new ArrayList<>();
+                // read products from cache file
+                try (DataInputStream stream = new DataInputStream(new BufferedInputStream(new FileInputStream(cacheFile), 16 * 1024 * 1024 /* 16MB */))) {
+                    //noinspection InfiniteLoopStatement
+                    while (true) {
+                        int length = stream.readInt();
+                        byte[] bytes = new byte[length];
+                        int read = stream.read(bytes);
+                        assert read == bytes.length : "unexpected end of file";
+                        numbers.add(new BigInteger(bytes));
+                    }
+                } catch (EOFException ignored) {
+                } catch (IOException exception) {
+                    throw new RuntimeException("failed to read from cache file: " + cacheFile.getAbsolutePath(), exception);
+                }
+                //noinspection ToArrayCallWithZeroLengthArrayArgument
+                products = numbers.toArray(new BigInteger[numbers.size()]);
+            }
+        }
 
         log.info("");
 

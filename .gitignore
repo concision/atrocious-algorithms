@@ -1,5 +1,5 @@
 ### Project Specific ###
-
+.cache/
 
 # Created by https://www.toptal.com/developers/gitignore/api/java,eclipse,netbeans,intellij+all,git,windows,macos,linux,visualstudiocode,maven
 # Edit at https://www.toptal.com/developers/gitignore?templates=java,eclipse,netbeans,intellij+all,git,windows,macos,linux,visualstudiocode,maven

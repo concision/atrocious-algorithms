@@ -15,6 +15,7 @@
     <version>0.1.0</version>
 
     <properties>
+        <cacheRoot>${project.basedir}${file.separator}.cache</cacheRoot>
         <generatedSourcesRoot>${project.build.directory}${file.separator}generated-sources${file.separator}java</generatedSourcesRoot>
     </properties>
 
@@ -143,9 +144,11 @@
                                 <!-- Add project classpath -->
                                 <argument>-classpath</argument>
                                 <classpath/>
+                                <argument>-Dparity.target="${generatedSourcesRoot}"</argument>
+                                <argument>-Dparity.cache="${cacheRoot}"</argument>
                                 <argument>me.concision.algorithms.parity.lcm.LcmParitySourceGenerator</argument>
                             </arguments>
-                            <workingDirectory>${generatedSourcesRoot}</workingDirectory>
+                            <workingDirectory>${project.basedir}</workingDirectory>
                         </configuration>
                     </execution>
                 </executions>
