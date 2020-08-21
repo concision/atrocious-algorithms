@@ -256,22 +256,17 @@ public class LcmParitySourceGenerator {
                 // sort factors and release old array elements to be garbage collected
                 Arrays.parallelSort(factors, 0, length);
 
-                // multiply smallest numbers with largest numbers
-                {
-                    // thanks for closures, Java
-                    int finalLength = length;
-                    // parallelized multiplication
-                    IntStream.range(0, length / 2)
-                            .parallel()
-                            .unordered()
-                            .forEach(i -> {
-                                int l = finalLength - 1 /* one less because 0 indexed */ - i /* go backwards */ - (finalLength % 2) /* skip last one */;
-                                factors[i] = factors[i].multiply(factors[l]);
-                                factors[l] = null;
-                            });
-                }
-                log.info("Completed");
-
+                // thanks for closures, Java
+                int finalLength = length;
+                // multiply smallest numbers with largest numbers in parallel
+                IntStream.range(0, length / 2)
+                        .parallel()
+                        .unordered()
+                        .forEach(i -> {
+                            int l = finalLength - 1 /* one less because 0 indexed */ - i /* go backwards */ - (finalLength % 2) /* skip last one */;
+                            factors[i] = factors[i].multiply(factors[l]);
+                            factors[l] = null;
+                        });
 
                 // shift the prime that was not used in the current multiplication step
                 if (length % 2 != 0) {
