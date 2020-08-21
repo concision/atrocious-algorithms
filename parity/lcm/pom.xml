@@ -134,7 +134,13 @@
                         <configuration>
                             <executable>java</executable>
                             <arguments>
-                                <argument>-ea</argument>
+                                <!-- 8g max ram -->>
+                                <argument>-Xmx8g</argument>
+                                <!-- Enable remote debugging -->
+                                <argument>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005</argument>
+                                <!-- Enable assertions -->
+                                <argument>-enableassertions</argument>
+                                <!-- Add project classpath -->
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>me.concision.algorithms.parity.lcm.LcmParitySourceGenerator</argument>
