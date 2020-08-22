@@ -409,7 +409,7 @@ public class LcmParitySourceGenerator {
         // open template file as a template writer
         TemplateWriter templater;
         try {
-            templater = new TemplateWriter(IOUtils.toString(new InputStreamReader(LcmParitySourceGenerator.class.getResourceAsStream("/Parity.java"))));
+            templater = new TemplateWriter(IOUtils.toString(new InputStreamReader(LcmParitySourceGenerator.class.getResourceAsStream("Parity.java"))));
         } catch (IOException exception) {
             throw new RuntimeException("failed to read template Parity.java");
         }
@@ -418,10 +418,6 @@ public class LcmParitySourceGenerator {
         //noinspection ResultOfMethodCallIgnored
         PARITY_JAVA.getParentFile().mkdirs();
         try (PrintStream output = new PrintStream(new BufferedOutputStream(new FileOutputStream(PARITY_JAVA), 1024 * 1024 /* 1MB */), false, StandardCharsets.ISO_8859_1.name())) {
-            // write package declaration
-            templater.seek(output, "PACKAGE_DECLARATION");
-            output.printf("package %s;%n", LcmParitySourceGenerator.class.getPackage().getName());
-
             // write product counts
             templater.seek(output, "PRODUCTS_COUNT");
             output.print(products.length);

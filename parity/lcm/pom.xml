@@ -59,28 +59,17 @@
         - https://stackoverflow.com/a/21396753
     -->
     <build>
+        <!-- Copy Parity.java template file -->
+        <resources>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/me/concision/algorithms/parity/lcm/Parity.java</include>
+                </includes>
+            </resource>
+        </resources>
+        <!-- Build project -->
         <plugins>
-            <!-- Add generated sources root to project sources -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>add-source</id>
-                        <phase>process-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${generatedSourcesRoot}</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
             <!-- Move default resources execution to process-sources phase -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -120,13 +109,11 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
+                            <fork>true</fork>
+                            <compileSourceRoots>${generatedSourcesRoot}</compileSourceRoots>
                             <source>8</source>
                             <target>8</target>
-                            <fork>true</fork>
                             <maxmem>5120m</maxmem>
-                            <includes>
-                                <include>**/me/concision/algorithms/parity/lcm/Parity.java</include>
-                            </includes>
                         </configuration>
                     </execution>
                     <!-- Compile test sources -->

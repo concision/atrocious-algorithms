@@ -1,4 +1,4 @@
-/* PACKAGE_DECLARATION */
+package me.concision.algorithms.parity.lcm;
 
 import java.math.BigInteger;
 import java.util.Arrays;
