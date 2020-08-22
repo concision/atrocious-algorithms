@@ -49,7 +49,7 @@ public class LcmParitySourceGenerator {
     /**
      * LCM lookup table upper limit
      */
-    private static final int LIMIT = Short.MAX_VALUE*20;
+    private static final int LIMIT = Integer.MAX_VALUE;
 
     /**
      * Initiate source code generation
