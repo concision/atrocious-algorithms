@@ -53,8 +53,8 @@ public class Parity {
                     // last iteration check
                     if (bufferPos == buffer.length) {
                         // assert this is the last chunk
-                        assert i + 1 == product.length : "expected end to be at last chunk";
-                        assert c + 1 == chunk.length() : "expected end to be at last character of last chunk";
+                        assert i + 1 == product.length : "expected end to be at last chunk (reached: " + (i + 1) + "; expected: " + product.length + ")";
+                        assert c + 1 == chunk.length() : "expected end to be at last character of last chunk (reached: " + (c + 1) + "; expected: " + chunk.length() + ")";
 
                         // clear bits cached counter
                         bitsCached = 0;
