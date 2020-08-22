@@ -2,6 +2,7 @@ package me.concision.algorithms.parity.lcm;
 
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.logging.log4j.core.util.IOUtils;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -12,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -30,6 +32,9 @@ import static java.lang.Math.round;
 import static java.lang.Math.sqrt;
 import static java.lang.Math.toIntExact;
 
+/**
+ * @author Concision
+ */
 @Log4j2
 public class LcmParitySourceGenerator {
     /**
@@ -44,7 +49,7 @@ public class LcmParitySourceGenerator {
     /**
      * LCM lookup table upper limit
      */
-    private static final Integer LIMIT = Integer.MAX_VALUE;
+    private static final int LIMIT = Integer.MAX_VALUE;
 
     /**
      * Initiate source code generation
@@ -192,6 +197,7 @@ public class LcmParitySourceGenerator {
 
             // compute primes using a sieve of eratosthenes
             // iterate only odd non-unit (e.g. 1) numbers
+            //noinspection ConstantConditions
             for (int n = 3; 0 <= n /* <-- int overflows */ && n <= LIMIT; n += 2) {
                 // translate number to an odd BitSet index
                 int fn = (n - 1) / 2;
@@ -382,26 +388,41 @@ public class LcmParitySourceGenerator {
         Arrays.fill(utf8lengths, 1);
         utf8lengths['\0'] = 2; // UTF-8 encoding for '\0' uses bytes C0 80
 
+        // open template file as a template writer
+        TemplateWriter templater;
+        try {
+            templater = new TemplateWriter(IOUtils.toString(new InputStreamReader(LcmParitySourceGenerator.class.getResourceAsStream("/Parity.java"))));
+        } catch (IOException exception) {
+            throw new RuntimeException("failed to read template Parity.java");
+        }
+
         // generate Java file with computed products
         //noinspection ResultOfMethodCallIgnored
         PARITY_JAVA.getParentFile().mkdirs();
         try (PrintStream output = new PrintStream(new BufferedOutputStream(new FileOutputStream(PARITY_JAVA), 1024 * 1024 /* 1MB */), false, StandardCharsets.ISO_8859_1.name())) {
-            // write boilerplate Java packaging
+            // write package declaration
+            templater.seek(output, "PACKAGE_DECLARATION");
             output.printf("package %s;%n", LcmParitySourceGenerator.class.getPackage().getName());
-            output.println();
-            // imports
-            output.println("import java.math.BigInteger;");
-            output.println();
 
-            // start of class
-            output.println("public class Parity {");
+            // write product counts
+            templater.seek(output, "PRODUCTS_COUNT");
+            output.print(products.length);
 
-            // start of static initializer
-            output.println("    static {");
-            // start of primePowers array
-            output.println("        String[][] primePowers = {");
+            // write expected byte lengths of each product
+            templater.seek(output, "PRODUCT_BYTE_LENGTHS");
+            for (int i = 0; i < products.length; i++) {
+                // ceiling of bytes
+                output.print((products[i].bitLength() + 7) / 8);
+
+                // delimit next byte length
+                if (i + 1 != products.length) {
+                    output.print(", ");
+                }
+            }
+
             // write computed products
             StopWatch watch = StopWatch.create();
+            templater.seek(output, "PRODUCT_BYTES");
             for (int p = 0; p < products.length; p++) {
                 log.info("Encoding product {} of {}", p + 1, products.length);
                 watch.reset();
@@ -478,13 +499,9 @@ public class LcmParitySourceGenerator {
                 watch.stop();
                 log.info("Encoded product; {} elapsed", watch.formatTime());
             }
-            // end of primePowers array
-            output.println("        };");
-            // end of static initializer
-            output.println("    };");
 
-            // end of class
-            output.println("}");
+            // write rest of the template
+            templater.finish(output);
         } catch (IOException exception) {
             throw new RuntimeException("failed to write Parity class", exception);
         }
