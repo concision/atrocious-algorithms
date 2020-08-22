@@ -39,19 +39,7 @@ public class Parity {
                     bitsCached += 7; // note that the last character of the last chunk might not actually hold 7 bits
 
                     // check if this is the last iteration
-                    if (bufferPos + 1 == buffer.length) {
-                        // assert this is the last chunk
-                        assert i + 1 == product.length : "expected end to be at last chunk";
-                        assert c + 1 == chunk.length() : "expected end to be at last character of last chunk";
-
-                        // take up to last 8 bits, left-aligned
-                        buffer[bufferPos] = (byte) (bits << 8 - Math.min(8, bitsCached) & 0xFF); // & 0xFF should be redundant...
-                        // update buffer position to final position; should be now equivalent to 'buffer.length'
-                        bufferPos++;
-
-                        // clear bits cached
-                        bitsCached = 0;
-                    } else if (8 <= bitsCached) {
+                    if (8 <= bitsCached) {
                         // take top 8 bits
                         buffer[bufferPos] = (byte) ((bits >> (bitsCached - 8)) & 0xFF);
                         // increment next buffer position
@@ -61,11 +49,21 @@ public class Parity {
                         // bits &= ~(0xFF << (bitsCached - 8));
                         bitsCached -= 8;
                     }
+
+                    // last iteration check
+                    if (bufferPos == buffer.length) {
+                        // assert this is the last chunk
+                        assert i + 1 == product.length : "expected end to be at last chunk";
+                        assert c + 1 == chunk.length() : "expected end to be at last character of last chunk";
+
+                        // clear bits cached counter
+                        bitsCached = 0;
+                    }
                 }
                 // release chunk for garbage collection
                 product[i] = null;
             }
-            // all bits should have been consuming by now
+            // all bits should have been consumed by now
             assert bufferPos == buffer.length : "expected buffer position to be at end";
             assert bitsCached == 0 : "all cached bits should have been consumed";
 
@@ -84,7 +82,7 @@ public class Parity {
      * @return {@code true} if {@param n} is even; {@code false} otherwise
      */
     public static boolean isEven(int n) {
-        return Arrays.stream(PRIME_POWERS)
+        return n == 0 || Arrays.stream(PRIME_POWERS)
                 .noneMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
     }
 
@@ -95,7 +93,7 @@ public class Parity {
      * @return {@code true} if {@param n} is odd; {@code false} otherwise
      */
     public static boolean isOdd(int n) {
-        return Arrays.stream(PRIME_POWERS)
+        return n != 0 && Arrays.stream(PRIME_POWERS)
                 .allMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
     }
 }
