@@ -252,7 +252,7 @@ public class LcmParitySourceGenerator {
             log.info("Total base 2 magnitude: {}", String.format("%,d", round(ceil(cumulativeMagnitude[cumulativeMagnitude.length - 1] / log(2)))));
 
             // check if a split is necessary
-            if (Integer.MAX_VALUE <= cumulativeMagnitude[cumulativeMagnitude.length - 1]) {
+            if (Integer.MAX_VALUE <= cumulativeMagnitude[cumulativeMagnitude.length - 1] / log(2)) {
                 // efficiently search for a split point where the magnitude of the product of the sets are approximately the same
                 splitIndex = Arrays.binarySearch(cumulativeMagnitude, cumulativeMagnitude[cumulativeMagnitude.length - 1] / 2);
                 if (splitIndex < 0) splitIndex = ~splitIndex - 1;
