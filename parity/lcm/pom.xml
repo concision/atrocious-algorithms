@@ -149,6 +149,7 @@
                                 <argument>me.concision.algorithms.parity.lcm.LcmParitySourceGenerator</argument>
                             </arguments>
                             <workingDirectory>${project.basedir}</workingDirectory>
+                            <useMavenLogger>true</useMavenLogger>
                         </configuration>
                     </execution>
                 </executions>

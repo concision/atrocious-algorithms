@@ -9,7 +9,7 @@
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout disableAnsi="false">
-                <Pattern>[%highlight{%p}{ERROR=bright red, WARN=bright yellow, INFO=bright blue}] %m%n%throwable</Pattern>
+                <Pattern>%m%n%throwable</Pattern>
             </PatternLayout>
         </Console>
     </Appenders>
