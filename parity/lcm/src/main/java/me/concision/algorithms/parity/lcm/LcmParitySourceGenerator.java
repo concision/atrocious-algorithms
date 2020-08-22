@@ -49,7 +49,7 @@ public class LcmParitySourceGenerator {
     /**
      * LCM lookup table upper limit
      */
-    private static final int LIMIT = Integer.MAX_VALUE;
+    private static final int LIMIT = Short.MAX_VALUE*20;
 
     /**
      * Initiate source code generation
@@ -387,7 +387,7 @@ public class LcmParitySourceGenerator {
         byte[][] escapedChar = new byte[128][];
         {
             String[] lookup = IntStream.rangeClosed(0, 127).mapToObj(i -> String.valueOf((char) i)).toArray(String[]::new);
-            lookup['\0'] = "\\0";
+            lookup['\0'] = "\\u0000";
             lookup['\b'] = "\\b";
             lookup['\n'] = "\\n";
             lookup['\r'] = "\\r";
