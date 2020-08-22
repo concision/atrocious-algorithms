@@ -233,6 +233,7 @@ public class LcmParitySourceGenerator {
         // Unfortunately, the product of all the prime-powers can exceed Integer.MAX_VALUE. The prime-powers must be
         // split into at least 2 distinct sets for the integer range. Note that during this split process, all
         // prime-powers whose prime is in the range '3 <= p <= sqrt(LIMIT)` must be grouped together.
+        // If no split is necessary, the value will be negative
         int splitIndex;
         // split the prime-powers into 2 sets of equal magnitude as a product
         {
@@ -248,30 +249,47 @@ public class LcmParitySourceGenerator {
                 cumulativeMagnitude[i] = cumulative;
             }
 
-            // efficiently search for a split point where the magnitude of the product of the sets are approximately the same
-            splitIndex = Arrays.binarySearch(cumulativeMagnitude, cumulativeMagnitude[cumulativeMagnitude.length - 1] / 2);
-            if (splitIndex < 0) splitIndex = ~splitIndex - 1;
-
-            watch.stop();
             log.info("Total base 2 magnitude: {}", String.format("%,d", round(ceil(cumulativeMagnitude[cumulativeMagnitude.length - 1] / log(2)))));
-            log.info("Split into magnitudes {} (prime-power count: {}); {} elapsed",
-                    new String[]{
-                            String.format("%,d", round(ceil(cumulativeMagnitude[splitIndex] / log(2)))),
-                            String.format("%,d", round(ceil((cumulativeMagnitude[cumulativeMagnitude.length - 1] - cumulativeMagnitude[splitIndex]) / log(2))))
-                    },
-                    new String[]{
-                            String.format("%,d", splitIndex),
-                            String.format("%,d", primeIndex - splitIndex)
-                    },
-                    watch.formatTime()
-            );
+
+            // check if a split is necessary
+            if (Integer.MAX_VALUE <= cumulativeMagnitude[cumulativeMagnitude.length - 1]) {
+                // efficiently search for a split point where the magnitude of the product of the sets are approximately the same
+                splitIndex = Arrays.binarySearch(cumulativeMagnitude, cumulativeMagnitude[cumulativeMagnitude.length - 1] / 2);
+                if (splitIndex < 0) splitIndex = ~splitIndex - 1;
+
+                watch.stop();
+                log.info("Split into magnitudes {} (prime-power count: {}); {} elapsed",
+                        new String[]{
+                                String.format("%,d", round(ceil(cumulativeMagnitude[splitIndex] / log(2)))),
+                                String.format("%,d", round(ceil((cumulativeMagnitude[cumulativeMagnitude.length - 1] - cumulativeMagnitude[splitIndex]) / log(2))))
+                        },
+                        new String[]{
+                                String.format("%,d", splitIndex),
+                                String.format("%,d", primeIndex - splitIndex)
+                        },
+                        watch.formatTime()
+                );
+            } else {
+                splitIndex = -1;
+
+                watch.stop();
+                log.info("No split necessary; {} elapsed", watch.formatTime());
+            }
         }
 
-        // split the prime-powers based on the determined split location
-        return new int[][]{
-                Arrays.copyOfRange(primePowers, 0, splitIndex),
-                Arrays.copyOfRange(primePowers, splitIndex, primeIndex)
-        };
+        // no split necessary
+        if (splitIndex < 0) {
+            // remove trailing empty values
+            return new int[][]{
+                    Arrays.copyOfRange(primePowers, 0, primeIndex)
+            };
+        } else {
+            // split the prime-powers based on the determined split location
+            return new int[][]{
+                    Arrays.copyOfRange(primePowers, 0, splitIndex),
+                    Arrays.copyOfRange(primePowers, splitIndex, primeIndex)
+            };
+        }
     }
 
     /**
