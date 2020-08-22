@@ -428,9 +428,12 @@ public class LcmParitySourceGenerator {
 
             // write expected byte lengths of each product
             templater.seek(output, "PRODUCT_BYTE_LENGTHS");
+            int[] byteLengths = new int[products.length];
             for (int i = 0; i < products.length; i++) {
                 // ceiling of bytes
-                output.print((products[i].bitLength() + 7) / 8);
+                byteLengths[i] = products[i].bitLength() / 8 + 1;
+                // write the byte length
+                output.print(byteLengths[i]);
 
                 // delimit next byte length
                 if (i + 1 != products.length) {
@@ -448,6 +451,8 @@ public class LcmParitySourceGenerator {
 
                 // convert product to a byte buffer
                 ByteBuffer input = ByteBuffer.wrap(products[p].toByteArray());
+                // ensure byte lengths were correctly written
+                assert input.remaining() == byteLengths[p] : "unexpected encoded product byte length";
                 // release product to be garbage collected
                 products[p] = null;
 
