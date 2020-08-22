@@ -512,7 +512,6 @@ public class LcmParitySourceGenerator {
                 if (p != products.length - 1) {
                     output.print(',');
                 }
-                output.println();
 
                 watch.stop();
                 log.info("Encoded product; {} elapsed", watch.formatTime());
