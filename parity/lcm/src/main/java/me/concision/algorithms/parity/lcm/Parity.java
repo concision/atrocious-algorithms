@@ -5,6 +5,7 @@ import java.util.Arrays;
 
 @SuppressWarnings("ALL")
 public class Parity {
+    public static final int LIMIT = /* LIMIT */ 0 /* /LIMIT */;
     private static final BigInteger[] PRIME_POWERS = new BigInteger[/* PRODUCTS_COUNT */ 0 /* /PRODUCTS_COUNT */];
 
     /**

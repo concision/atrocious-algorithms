@@ -418,6 +418,10 @@ public class LcmParitySourceGenerator {
         //noinspection ResultOfMethodCallIgnored
         PARITY_JAVA.getParentFile().mkdirs();
         try (PrintStream output = new PrintStream(new BufferedOutputStream(new FileOutputStream(PARITY_JAVA), 1024 * 1024 /* 1MB */), false, StandardCharsets.ISO_8859_1.name())) {
+            // write upper limit supported
+            templater.seek(output, "LIMIT");
+            output.print(LIMIT);
+
             // write product counts
             templater.seek(output, "PRODUCTS_COUNT");
             output.print(products.length);
