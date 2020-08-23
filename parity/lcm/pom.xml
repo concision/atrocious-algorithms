@@ -121,7 +121,7 @@
                             <compileSourceRoots>${generatedSourcesRoot}</compileSourceRoots>
                             <source>8</source>
                             <target>8</target>
-                            <maxmem>5120m</maxmem>
+                            <maxmem>6144m</maxmem> <!-- 6GB -->
                         </configuration>
                     </execution>
                     <!-- Compile test sources -->
