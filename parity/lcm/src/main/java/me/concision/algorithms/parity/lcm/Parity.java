@@ -76,13 +76,18 @@ public class Parity {
     }
 
     /**
+     * Dummy method that forcibly loads the class and executes the static initializer
+     */
+    public static void load() {}
+
+    /**
      * Tests if a specified integer is even.
      *
      * @param n integer to test
      * @return {@code true} if {@param n} is even; {@code false} otherwise
      */
     public static boolean isEven(int n) {
-        return n == 0 || Arrays.stream(PRIME_POWERS)
+        return n == 0 || Arrays.stream(PRIME_POWERS).parallel()
                 .noneMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
     }
 
@@ -93,7 +98,7 @@ public class Parity {
      * @return {@code true} if {@param n} is odd; {@code false} otherwise
      */
     public static boolean isOdd(int n) {
-        return n != 0 && Arrays.stream(PRIME_POWERS)
+        return n != 0 && Arrays.stream(PRIME_POWERS).parallel()
                 .allMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
     }
 }
