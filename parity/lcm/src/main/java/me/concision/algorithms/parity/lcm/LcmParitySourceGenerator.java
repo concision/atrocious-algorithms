@@ -47,9 +47,9 @@ public class LcmParitySourceGenerator {
     ).toFile();
 
     /**
-     * LCM lookup table upper limit
+     * LCM lookup table upper limit; should be {@link Integer#MAX_VALUE} unless testing.
      */
-    private static final int LIMIT = Integer.MAX_VALUE;
+    public static final int LIMIT = Integer.MAX_VALUE;
 
     /**
      * Initiate source code generation
@@ -418,10 +418,6 @@ public class LcmParitySourceGenerator {
         //noinspection ResultOfMethodCallIgnored
         PARITY_JAVA.getParentFile().mkdirs();
         try (PrintStream output = new PrintStream(new BufferedOutputStream(new FileOutputStream(PARITY_JAVA), 1024 * 1024 /* 1MB */), false, StandardCharsets.ISO_8859_1.name())) {
-            // write upper limit supported
-            templater.seek(output, "LIMIT");
-            output.print(LIMIT);
-
             // write product counts
             templater.seek(output, "PRODUCTS_COUNT");
             output.print(products.length);

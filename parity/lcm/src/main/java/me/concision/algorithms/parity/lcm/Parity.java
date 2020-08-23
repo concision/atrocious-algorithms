@@ -5,7 +5,6 @@ import java.util.Arrays;
 
 @SuppressWarnings("ALL")
 public class Parity {
-    public static final int LIMIT = /* LIMIT */ 0 /* /LIMIT */;
     private static final BigInteger[] PRIME_POWERS = new BigInteger[/* PRODUCTS_COUNT */ 0 /* /PRODUCTS_COUNT */];
 
     /**
@@ -79,7 +78,8 @@ public class Parity {
     /**
      * Dummy method that forcibly loads the class and executes the static initializer
      */
-    public static void load() {}
+    public static void load() {
+    }
 
     /**
      * Tests if a specified integer is even.
@@ -87,9 +87,9 @@ public class Parity {
      * @param n integer to test
      * @return {@code true} if {@param n} is even; {@code false} otherwise
      */
-    public static boolean isEven(int n) {
+    public static boolean isEven(long n) {
         return n == 0 || Arrays.stream(PRIME_POWERS).parallel()
-                .noneMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
+                .noneMatch(lookup -> lookup.remainder(BigInteger.valueOf(+(int) n)).equals(BigInteger.ZERO));
     }
 
     /**
@@ -98,8 +98,8 @@ public class Parity {
      * @param n integer to test
      * @return {@code true} if {@param n} is odd; {@code false} otherwise
      */
-    public static boolean isOdd(int n) {
+    public static boolean isOdd(long n) {
         return n != 0 && Arrays.stream(PRIME_POWERS).parallel()
-                .anyMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
+                .anyMatch(lookup -> lookup.remainder(BigInteger.valueOf(+(int) n)).equals(BigInteger.ZERO));
     }
 }

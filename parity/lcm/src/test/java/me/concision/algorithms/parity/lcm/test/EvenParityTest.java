@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Random;
 
+import static me.concision.algorithms.parity.lcm.LcmParitySourceGenerator.LIMIT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("ConstantConditions")
@@ -15,8 +16,8 @@ public class EvenParityTest {
         Parity.load();
     }
 
-    private static void test(int n) {
-        assertEquals(n % 2 == 0, Parity.isEven(n), "unexpected even parity: " + n);
+    private static void test(long n) {
+        assertEquals(n % 2L == 0L, Parity.isEven(n), "unexpected even parity: " + n);
     }
 
     @Test
@@ -28,14 +29,14 @@ public class EvenParityTest {
 
     @Test
     public void maxLimit() {
-        test(Parity.LIMIT - 1);
-        test(Parity.LIMIT);
+        test(LIMIT - 1);
+        test(LIMIT);
     }
 
     @Test
     public void sqrtRange() {
-        int sqrt = (int) (Math.sqrt(Parity.LIMIT));
-        for (int i = Math.max(-Parity.LIMIT, sqrt - 4); i <= Math.min(sqrt + 4, Parity.LIMIT); i++) {
+        int sqrt = (int) (Math.sqrt(LIMIT));
+        for (int i = Math.max(-LIMIT, sqrt - 4); i <= Math.min(sqrt + 4, LIMIT); i++) {
             test(i);
         }
     }
@@ -45,7 +46,18 @@ public class EvenParityTest {
         Random random = new Random();
 
         for (int i = 0; i < 16; i++) {
-            test(random.nextInt(Parity.LIMIT));
+            test(random.nextInt(LIMIT));
+        }
+    }
+
+    @Test
+    public void longValues() {
+        if (LIMIT == Integer.MAX_VALUE) {
+            Random random = new Random();
+
+            for (int i = 0; i < 16; i++) {
+                test(random.nextLong());
+            }
         }
     }
 }
