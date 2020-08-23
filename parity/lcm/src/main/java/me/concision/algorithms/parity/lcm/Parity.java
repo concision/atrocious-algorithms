@@ -100,6 +100,6 @@ public class Parity {
      */
     public static boolean isOdd(int n) {
         return n != 0 && Arrays.stream(PRIME_POWERS).parallel()
-                .allMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
+                .anyMatch(lookup -> lookup.remainder(BigInteger.valueOf(+n)).equals(BigInteger.ZERO));
     }
 }
