@@ -89,7 +89,7 @@ public class Parity {
      */
     public static boolean isEven(long n) {
         return n == 0 || Arrays.stream(PRIME_POWERS).parallel()
-                .noneMatch(lookup -> lookup.remainder(BigInteger.valueOf(+(int) n)).equals(BigInteger.ZERO));
+                .noneMatch(lookup -> lookup.remainder(BigInteger.valueOf((int) n)).equals(BigInteger.ZERO));
     }
 
     /**
@@ -100,6 +100,6 @@ public class Parity {
      */
     public static boolean isOdd(long n) {
         return n != 0 && Arrays.stream(PRIME_POWERS).parallel()
-                .anyMatch(lookup -> lookup.remainder(BigInteger.valueOf(+(int) n)).equals(BigInteger.ZERO));
+                .anyMatch(lookup -> lookup.remainder(BigInteger.valueOf((int) n)).equals(BigInteger.ZERO));
     }
 }
