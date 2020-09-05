@@ -21,6 +21,7 @@
 
     <modules>
         <module>parity</module>
+        <module>sorting</module>
     </modules>
 
     <properties>
